@@ -1,0 +1,12 @@
+<LimitExcept OPTIONS>
+    AuthUserFile /var/www/html/interval/.htpasswd
+    AuthType Basic
+    AuthName "NmNlYTRqeXA1aGU6WA=="
+    Require valid-user
+</LimitExcept>
+
+Header always set Access-Control-Allow-Headers Authorization
+Header always set Access-Control-Allow-Credentials true
+
+SetEnvIf Origin "^(.*?)$" origin_is=$0
+Header always set Access-Control-Allow-Origin %{origin_is}e env=origin_is
