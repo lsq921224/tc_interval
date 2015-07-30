@@ -1,12 +1,34 @@
 <?php
+	$datebegin = !is_null($_GET["datebegin"]) ? $_GET["datebegin"] : date("Y-m-d", strtotime(date('Y-m-01')));
+	$dateend = !is_null($_GET["dateend"]) ? $_GET["dateend"] : date("Y-m-d");
+	$clientid = $_GET["clientid"];
+	$worktypeid = $_GET["worktypeid"];
+	$moduleid = $_GET["moduleid"];
+	
+	
 	$username = '6cea4jyp5he';
 	$password = 'X';
-	$URL = 'https://api.myintervals.com/time';
+	$URL = 'https://api.myintervals.com/time/';
 	$work_type_url = 'https://api.myintervals.com/worktype';
 	$client_url = 'https://api.myintervals.com/client';
 	$module_url = 'https://api.myintervals.com/module';
 
-	$data = http_build_query(array('date' => '2015-07-02', 'limit' => 2147483647));
+	$data = http_build_query(array('datebegin' => $datebegin, 'dateend' => $dateend, 'limit' => 2147483647));
+	if (!is_null($worktypeid))
+	{
+		$w = http_build_query(array('worktypeid' => $worktypeid));
+		$data = $data . '&'. $w;
+	}
+	if (!is_null($clientid))
+	{
+		$c = http_build_query(array('clientid' => $clientid));
+		$data = $data . '&'. $c;
+	}
+	if (!is_null($moduleid))
+	{
+		$m = http_build_query(array('moduleid' => $moduleid));
+		$data = $data . '&'. $m;
+	}
 	$ch = curl_init();
 	curl_setopt($curl, CURLOPT_HEADER, array("Accept: application/json","Content-Type:       application/json"));
 	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
@@ -32,12 +54,17 @@
 <head>
   <link rel="stylesheet" href="css/dc.css"/>
   <link rel="stylesheet" href="css/bootstrap.css"/>
+  <link rel="stylesheet" href="css/daterangepicker.css"/>
   <script src="js/jquery-2.1.4.min.js"></script>
+  <script src="js/jquery.ba-bbq.js"></script>
   <script src="js/bootstrap.min.js"></script>
+  <script src="js/moment.js"></script>
+  <script src="js/daterangepicker.js"></script>
   <script src="js/d3.v3.js"></script>
   <script src="js/crossfilter.js"></script>
   <script src="js/dc.js"></script>
 <script> 
+ var data = <?php echo json_encode($data)?>;
  var work_type_json = <?php echo json_encode($work_types)?>;
  var work_type_json_obj = JSON.parse(work_type_json)['worktype'];
  var clients_json = <?php echo json_encode($clients)?>;
@@ -45,28 +72,86 @@
  var module_json = <?php echo json_encode($modules)?>;
  var module_json_obj = JSON.parse(module_json)['module'];
  //console.log(work_type_json_obj);
+ 
+var getUrlParameter = function getUrlParameter(sParam) {
+    var sPageURL = decodeURIComponent(window.location.search.substring(1)),
+        sURLVariables = sPageURL.split('&'),
+        sParameterName,
+        i;
+
+    for (i = 0; i < sURLVariables.length; i++) {
+        sParameterName = sURLVariables[i].split('=');
+
+        if (sParameterName[0] === sParam) {
+            return sParameterName[1] === undefined ? true : sParameterName[1];
+        }
+    }
+};
 
 $(document).ready(function(){
+	var url = window.location.href;
+	if (url[url.length - 1] != '/')
+	{
+		if (url[url.length - 1] != '&')
+			url += '&';
+	}
+	else
+		url += '?';
+	
+	var wid = getUrlParameter('worktypeid');
+	var cid = getUrlParameter('clientid');
+	var mid = getUrlParameter('moduleid');
+	
+	var work_type_all = url.replace(/&?worktypeid=([^&]$|[^&]*)/i, "");
+	var client_all = url.replace(/&?clientid=([^&]$|[^&]*)/i, "");
+	var module_all = url.replace(/&?moduleid=([^&]$|[^&]*)/i, "");
+	
+	$('#work_type_drop ul').append('<li><a href="'+ work_type_all +'">'+ "All" +'</a></li>');
+		 
+	$('#client_drop ul').append('<li><a href="'+ client_all +'">'+ "All" +'</a></li>');
+		
+	$('#module_drop ul').append('<li><a href="'+ module_all +'">'+ "All" +'</a></li>');
+	
 	for( index in work_type_json_obj )
     {
-      $('#work_type_drop ul').append('<li><a href="#">'+ work_type_json_obj[index].name +'</a></li>');
+	if (wid)
+	  {
+		var h = $.param.querystring(url, 'worktypeid='+ work_type_json_obj[index].id);
+		 $('#work_type_drop ul').append('<li><a href="'+ h +'">'+ work_type_json_obj[index].name +'</a></li>');
+	  }
+	  else
+		$('#work_type_drop ul').append('<li><a href="'+ url + 'worktypeid=' + work_type_json_obj[index].id +'">'+ work_type_json_obj[index].name +'</a></li>');
+	 
     }
 	
 	for( index in clients_json_obj )
     {
-      $('#client_drop ul').append('<li><a href="#">'+ clients_json_obj[index].name +'</a></li>');
+		if (cid)
+		{
+		var h = $.param.querystring(url, 'clientid='+ clients_json_obj[index].id);
+		 $('#client_drop ul').append('<li><a href="'+ h +'">'+ clients_json_obj[index].name +'</a></li>');
+		}
+		else
+      $('#client_drop ul').append('<li><a href="' + url + 'clientid='+ clients_json_obj[index].id + '">'+ clients_json_obj[index].name +'</a></li>');
     }
 	
 	for( index in module_json_obj )
     {
-      $('#module_drop ul').append('<li><a href="#">'+ module_json_obj[index].name +'</a></li>');
+		if (mid)
+		{
+		var h = $.param.querystring(url, 'moduleid='+ module_json_obj[index].id);
+		 $('#module_drop ul').append('<li><a href="'+ h +'">'+ module_json_obj[index].name +'</a></li>');
+		}
+		else
+      $('#module_drop ul').append('<li><a href="' + url + 'moduleid='+ module_json_obj[index].id + '">'+ module_json_obj[index].name +'</a></li>');
     }
+	
 });
 </script>
 </head>
 
 <body>
-<div id="abc">
+<div id="selections">
 
  <!-- btn-group --> 
   				<div id="work_type_drop" class="btn-group"><button type="button" class="btn dropdown-toggle" data-toggle="dropdown">Work Type</button>
@@ -86,21 +171,65 @@ $(document).ready(function(){
                   </ul>
               </div><!-- /btn-group -->
 
+			  <div id="reportrange" class="pull-left" style="background: #ddd; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; margin-right:4px; height: 34px; border-radius: 4px;" >
+    <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>&nbsp;
+    <span></span> <b class="caret"></b>
+</div>
+</div>
+<script type="text/javascript">
+$(function() {
+
+    function cb(start, end) {
+        $('#reportrange span').html(start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY'));
+    }
+    cb(moment("<?php echo $datebegin;?>"),moment("<?php echo $dateend;?>"));
+
+    $('#reportrange').daterangepicker({
+        ranges: {
+           'Today': [moment(), moment()],
+           'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+           'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+           'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+           'This Month': [moment().startOf('month'), moment().endOf('month')],
+           'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')],
+			'This Year': [moment().startOf('year'), moment()]
+        }
+    }, cb);
+
+	$('#reportrange').on('apply.daterangepicker', function(ev, picker) {
+		
+	console.log(picker.startDate.format('YYYY-MM-DD'));
+	console.log(picker.endDate.format('YYYY-MM-DD'));
+	window.location.href = $.param.querystring(window.location.href,"?datebegin=" + picker.startDate.format('YYYY-MM-DD') + "&dateend=" + picker.endDate.format('YYYY-MM-DD'));
+
+});
+});
+</script>
 
 </div>
 
-<div id="show"><!-- Show the content related to the item clicked in either of the lists here --></div>
-<h1>My Intervals</h1>
-
+<h3>Intervals - <a href = "/interval">reset</a><?php 
+if (is_null($worktypeid))
+	$worktypeid = "All";
+if (is_null($clientid))
+	$clientid = "All";
+if (is_null($moduleid))
+	$moduleid = "All";
+echo "<br>From ". $datebegin. " to ".$dateend. "<br>Work Type - " . $worktypeid. "<br>Client - ".$clientid. " <br>Module - ".$moduleid; ?> </h3>
+<h3 id = "nresults"></h3>
 <div id = "person"><p>Person</p></div>
-<div id = "client"><p>Client</p></div>
-<div id = "project"><p>Project</p></div>
-<div id = "work_type"><p>Work Type</p></div>
-<div id = "module"><p>Module</p></div>
 <div id = "time"><p>Time</p></div>
+
+<div id = "work_type"><p>Work Type</p></div>
+<div id = "client"><p>Client</p></div>
+<div id = "module"><p>Module</p></div>
+
+<div id = "project"><p>Project</p></div>
+
 <div id = "active"><p>Active</p></div>
 <div id = "billable"><p>Billable</p></div>
 <div id = "client_active"><p>Client Active</p></div>
+
 
 
 <script>
@@ -139,7 +268,7 @@ var json_raw = <?php echo json_encode($result)?>;
 var json_d = JSON.parse(json_raw);
 var length = json_d['listcount'];
 var times = json_d['time'];
-
+$('#nresults').html("Number of Results: "+ length);
 console.log(json_d);
 var active_chart = dc.pieChart('#active');
 var billable_chart = dc.pieChart('#billable');
@@ -149,7 +278,7 @@ var person_chart = dc.rowChart('#person');
 var module_chart = dc.rowChart('#module');
 var project_chart = dc.rowChart('#project');
 var work_type_chart = dc.rowChart('#work_type');
-//var time_chart = dc.barChart('#time');
+var time_chart = dc.barChart('#time');
 
 //var eng_lines = json_d;
 //eng_lines.forEach(function(x){
@@ -201,53 +330,69 @@ client_active_chart
 	
 var client_d = interval_cf.dimension(function(d){return d.client;});
 var count_by_client = client_d.group();
+var client_height = count_by_client.all().length * 20 + 200;
 
 client_chart
 	.width(400)
-	.height(600)
+	.height(client_height)
 	.dimension(client_d)
 	.group(count_by_client)
 	.elasticX(true);
 	
 var person_d = interval_cf.dimension(function(d){return d.person;});
 var count_by_person = person_d.group();
+var person_height = count_by_person.all().length * 20 + 200;
 
 person_chart
 	.width(300)
-	.height(1000)
+	.height(person_height)
 	.dimension(person_d)
 	.group(count_by_person)
 	.elasticX(true);
 
 var module_d = interval_cf.dimension(function(d){return d.module;});
 var count_by_module = module_d.group();
+var module_height = count_by_module.all().length * 20 + 200;
 
 module_chart
 	.width(400)
-	.height(600)
+	.height(module_height)
 	.dimension(module_d)
 	.group(count_by_module)
 	.elasticX(true);
 
 var project_d = interval_cf.dimension(function(d){return d.project;});
 var count_by_project = project_d.group();
+var project_height = count_by_project.all().length * 20 + 200;
 
 project_chart
 	.width(400)
-	.height(600)
+	.height(project_height)
 	.dimension(project_d)
 	.group(count_by_project)
 	.elasticX(true);
 	
 var work_type_d = interval_cf.dimension(function(d){return d.worktype;});
 var count_by_work_type = work_type_d.group();
+var work_type_height = count_by_work_type.all().length * 20 + 200;
 
 work_type_chart
-	.width(300)
-	.height(400)
+	.width(400)
+	.height(work_type_height)
 	.dimension(work_type_d)
 	.group(count_by_work_type)
 	.elasticX(true);
+	
+var time_d = interval_cf.dimension(function(d){return d.time;});
+var count_by_time = time_d.group();
+
+time_chart
+	.width(300)
+	.height(250)
+	.dimension(time_d)
+	.group(count_by_time)
+	.x(d3.scale.linear().domain([0, 40]))
+	.elasticY(true);
 
 function remove_small_agents_groups(source_group) {
     return {
