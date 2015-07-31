@@ -4,7 +4,7 @@
 	$clientid = $_GET["clientid"];
 	$worktypeid = $_GET["worktypeid"];
 	$moduleid = $_GET["moduleid"];
-	
+	$personid = $_GET["personid"];
 	
 	$username = '6cea4jyp5he';
 	$password = 'X';
@@ -12,6 +12,7 @@
 	$work_type_url = 'https://api.myintervals.com/worktype';
 	$client_url = 'https://api.myintervals.com/client';
 	$module_url = 'https://api.myintervals.com/module';
+	$person_url = 'https://api.myintervals.com/person';
 
 	$data = http_build_query(array('datebegin' => $datebegin, 'dateend' => $dateend, 'limit' => 2147483647));
 	if (!is_null($worktypeid))
@@ -27,6 +28,11 @@
 	if (!is_null($moduleid))
 	{
 		$m = http_build_query(array('moduleid' => $moduleid));
+		$data = $data . '&'. $m;
+	}
+	if (!is_null($personid))
+	{
+		$m = http_build_query(array('personid' => $personid));
 		$data = $data . '&'. $m;
 	}
 	$ch = curl_init();
@@ -188,7 +194,7 @@ $(document).ready(function(){
 	$("#export_drop")
 	.hover(
 	function(){
-		$('#message').html("Export selected " + person_d.top(Infinity).length + " objects to file");
+		$('#message').html("Export selected " + active_d.top(Infinity).length + " objects to file");
 		$('#message').show();
 	},
 	function(){
@@ -276,15 +282,18 @@ echo "<br>From ". $datebegin. " to ".$dateend;?> </h3>
 <h3 class = "names" id = "wt">Work Type - <?php echo $worktypeid;?> </h3>
 <h3 class = "names" id = "ct">Client - <?php echo $clientid; ?></h3>
 <h3 class = "names" id = "md">Module - <?php echo $moduleid; ?></h3>
-<h3 id = "nresults"></h3>
-<h3 id = "sresults"></h3>
+<h3 id = "nresults" style = "margin-bottom: 0px;"></h3>
+<h3 id = "sresults" style = "margin-top: 0px;"></h3>
 <div id = "error" hidden>Error Getting data from myinterval API, may be requesting too many data</div>
 <div id = "charts">
 <div id = "person"><p>Person - 
               <a class="reset" href="javascript:person_chart.filterAll();dc.redrawAll();" style = "display: none;">reset</a> </p>
 </div>
 <div id = "time"><p>Time - 
-<a class="reset" href="javascript:time_chart.filterAll();dc.redrawAll();" style = "display: none;">reset</a> </p></div>
+<a class="reset" href="javascript:time_chart.filterAll();dc.redrawAll();" style = "display: none;">reset</a> </p>
+<br>
+<p id = "total_time">Total: Loading..</p> 
+</div>
 
 <div id = "work_type"><p>Work Type - 
 <a class="reset" href="javascript:work_type_chart.filterAll();dc.redrawAll();" style = "display: none;">reset</a> 
@@ -363,6 +372,8 @@ var module_chart = dc.rowChart('#module');
 var project_chart = dc.rowChart('#project');
 var work_type_chart = dc.rowChart('#work_type');
 var time_chart = dc.barChart('#time');
+
+var charts = [time_chart,active_chart, billable_chart, client_active_chart, client_chart, person_chart, module_chart, project_chart, work_type_chart];
 
 //var eng_lines = json_d;
 //eng_lines.forEach(function(x){
@@ -489,9 +500,25 @@ function remove_small_agents_groups(source_group) {
     };
 }
 
-
-
+var total_default = interval_cf.groupAll().reduceSum(function(d){return d.time;}).value();
+var num_default = interval_cf.groupAll().value();
+var avg_default = total_default / num_default;
+$("#total_time").html("Total: " + total_default.toFixed(2) + " hours&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Avg: " + avg_default.toFixed(2) + " hours");
 dc.renderAll();
+
+for (var i = 0; i < charts.length; i++)
+{
+charts[i].on("filtered", function(chart, filter){
+		var total = interval_cf.groupAll().reduceSum(function(d){return d.time;}).value();
+		var num = interval_cf.groupAll().value();
+		var avg = total / num;
+		$("#total_time").html("Total: " + total.toFixed(2) + " hours&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Avg: " + avg.toFixed(2) + " hours");
+		$("#sresults").html("Number of selected results: " + num);
+});
+}
+
+
+
 </script>
 
 </body>
