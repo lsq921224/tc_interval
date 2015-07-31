@@ -1,6 +1,6 @@
 <?php
 	$datebegin = !is_null($_GET["datebegin"]) ? $_GET["datebegin"] : date("Y-m-d", strtotime(date('Y-m-01')));
-	$dateend = !is_null($_GET["dateend"]) ? $_GET["dateend"] : date("Y-m-d");
+	$dateend = !is_null($_GET["dateend"]) ? $_GET["dateend"] : date("Y-m-d",strtotime( '-1 days' ));
 	$clientid = $_GET["clientid"];
 	$worktypeid = $_GET["worktypeid"];
 	$moduleid = $_GET["moduleid"];
@@ -49,9 +49,11 @@
 	$modules = curl_exec($ch);
 	curl_close($ch);
  ?>
+ 
 <html>
 <meta charset="utf-8">
 <head>
+  <link rel="stylesheet" href="css/style.css"/>
   <link rel="stylesheet" href="css/dc.css"/>
   <link rel="stylesheet" href="css/bootstrap.css"/>
   <link rel="stylesheet" href="css/daterangepicker.css"/>
@@ -63,6 +65,10 @@
   <script src="js/d3.v3.js"></script>
   <script src="js/crossfilter.js"></script>
   <script src="js/dc.js"></script>
+  <script src="js/jquery.csv.js"></script>
+  <script src="js/FileSaver.min.js"></script>
+  <script src="js/json2csv.js"></script>
+
 <script> 
  var data = <?php echo json_encode($data)?>;
  var work_type_json = <?php echo json_encode($work_types)?>;
@@ -90,6 +96,7 @@ var getUrlParameter = function getUrlParameter(sParam) {
 
 $(document).ready(function(){
 	var url = window.location.href;
+	
 	if (url[url.length - 1] != '/')
 	{
 		if (url[url.length - 1] != '&')
@@ -118,6 +125,8 @@ $(document).ready(function(){
 	  {
 		var h = $.param.querystring(url, 'worktypeid='+ work_type_json_obj[index].id);
 		 $('#work_type_drop ul').append('<li><a href="'+ h +'">'+ work_type_json_obj[index].name +'</a></li>');
+		if (work_type_json_obj[index].id == wid)
+			$('#wt').html("Work Type - " + work_type_json_obj[index].name);
 	  }
 	  else
 		$('#work_type_drop ul').append('<li><a href="'+ url + 'worktypeid=' + work_type_json_obj[index].id +'">'+ work_type_json_obj[index].name +'</a></li>');
@@ -130,6 +139,8 @@ $(document).ready(function(){
 		{
 		var h = $.param.querystring(url, 'clientid='+ clients_json_obj[index].id);
 		 $('#client_drop ul').append('<li><a href="'+ h +'">'+ clients_json_obj[index].name +'</a></li>');
+		 if (clients_json_obj[index].id == cid)
+			 $('#ct').html("Client - " + clients_json_obj[index].name);
 		}
 		else
       $('#client_drop ul').append('<li><a href="' + url + 'clientid='+ clients_json_obj[index].id + '">'+ clients_json_obj[index].name +'</a></li>');
@@ -141,11 +152,49 @@ $(document).ready(function(){
 		{
 		var h = $.param.querystring(url, 'moduleid='+ module_json_obj[index].id);
 		 $('#module_drop ul').append('<li><a href="'+ h +'">'+ module_json_obj[index].name +'</a></li>');
+		 if (module_json_obj[index].id == mid)
+		  $('#md').html("Module - " + module_json_obj[index].name);
 		}
 		else
       $('#module_drop ul').append('<li><a href="' + url + 'moduleid='+ module_json_obj[index].id + '">'+ module_json_obj[index].name +'</a></li>');
     }
 	
+	$("#s_json").click(function() {
+		var json_string = JSON.stringify(person_d.top(Infinity));
+		var blob = new Blob([json_string], {type: "application/json"});
+		saveAs(blob, "interval_json_" + $('#ct').text() + "_" + $('#wt').text() + '_' + $('#md').text() + ".json");
+
+	});
+	
+	
+	$("#s_csv").click(function() {
+		
+		var json_obj = person_d.top(Infinity);
+		var input = json_obj;
+		if (!input) {
+			return;
+		}
+		var json = json_obj;
+		var inArray = arrayFrom(json);
+		var outArray = [];
+		for (var row in inArray)
+		  outArray[outArray.length] = parse_object(inArray[row]);
+		
+		var csv = $.csv.fromObjects(outArray);
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+		saveAs(blob, "interval_csv_" + $('#ct').text() + "_" + $('#wt').text() + '_' + $('#md').text() + ".csv");
+	});
+	
+	$("#export_drop")
+	.hover(
+	function(){
+		$('#message').html("Export selected " + person_d.top(Infinity).length + " objects to file");
+		$('#message').show();
+	},
+	function(){
+		$('#message').hide();
+	}
+	);
 });
 </script>
 </head>
@@ -170,6 +219,13 @@ $(document).ready(function(){
 
                   </ul>
               </div><!-- /btn-group -->
+			  
+<!-- btn-group --> <div id="export_drop" class="btn-group"><button type="button" class="btn dropdown-toggle" data-toggle="dropdown">Export</button><ul class="dropdown-menu">
+	<li><a id = "s_json">JSON</a></li>
+	<li><a id = "s_csv">CSV</a></li>
+                  </ul>
+				  <span class ="alert alert-info" id='message' style ="margin-left:4px;" hidden></span>
+              </div><!-- /btn-group -->
 
 			  <div id="reportrange" class="pull-left" style="background: #ddd; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; margin-right:4px; height: 34px; border-radius: 4px;" >
     <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>&nbsp;
@@ -192,7 +248,8 @@ $(function() {
            'Last 30 Days': [moment().subtract(29, 'days'), moment()],
            'This Month': [moment().startOf('month'), moment().endOf('month')],
            'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')],
-			'This Year': [moment().startOf('year'), moment()]
+		   'This Year': [moment().startOf('year'), moment()]   
+	
         }
     }, cb);
 
@@ -208,28 +265,50 @@ $(function() {
 
 </div>
 
-<h3>Intervals - <a href = "/interval">reset</a><?php 
+<h3 id = "it">Intervals - <a href = "/interval">reset</a><?php 
 if (is_null($worktypeid))
 	$worktypeid = "All";
 if (is_null($clientid))
 	$clientid = "All";
 if (is_null($moduleid))
 	$moduleid = "All";
-echo "<br>From ". $datebegin. " to ".$dateend. "<br>Work Type - " . $worktypeid. "<br>Client - ".$clientid. " <br>Module - ".$moduleid; ?> </h3>
+echo "<br>From ". $datebegin. " to ".$dateend;?> </h3>
+<h3 class = "names" id = "wt">Work Type - <?php echo $worktypeid;?> </h3>
+<h3 class = "names" id = "ct">Client - <?php echo $clientid; ?></h3>
+<h3 class = "names" id = "md">Module - <?php echo $moduleid; ?></h3>
 <h3 id = "nresults"></h3>
-<div id = "person"><p>Person</p></div>
-<div id = "time"><p>Time</p></div>
+<h3 id = "sresults"></h3>
+<div id = "error" hidden>Error Getting data from myinterval API, may be requesting too many data</div>
+<div id = "charts">
+<div id = "person"><p>Person - 
+              <a class="reset" href="javascript:person_chart.filterAll();dc.redrawAll();" style = "display: none;">reset</a> </p>
+</div>
+<div id = "time"><p>Time - 
+<a class="reset" href="javascript:time_chart.filterAll();dc.redrawAll();" style = "display: none;">reset</a> </p></div>
 
-<div id = "work_type"><p>Work Type</p></div>
-<div id = "client"><p>Client</p></div>
-<div id = "module"><p>Module</p></div>
+<div id = "work_type"><p>Work Type - 
+<a class="reset" href="javascript:work_type_chart.filterAll();dc.redrawAll();" style = "display: none;">reset</a> 
+</p></div>
+<div id = "client"><p>Client - 
+<a class="reset" href="javascript:client_chart.filterAll();dc.redrawAll();" style = "display: none;">reset</a> 
+</p></div>
+<div id = "module"><p>Module - 
+<a class="reset" href="javascript:module_chart.filterAll();dc.redrawAll();" style = "display: none;">reset</a> 
+</p></div>
+<div id = "project"><p>Project - 
+<a class="reset" href="javascript:project_chart.filterAll();dc.redrawAll();" style = "display: none;">reset</a> 
+</p></div>
 
-<div id = "project"><p>Project</p></div>
-
-<div id = "active"><p>Active</p></div>
-<div id = "billable"><p>Billable</p></div>
-<div id = "client_active"><p>Client Active</p></div>
-
+<div id = "active"><p>Active - 
+<a class="reset" href="javascript:active_chart.filterAll();dc.redrawAll();" style = "display: none;">reset</a> 
+</p></div>
+<div id = "billable"><p>Billable - 
+<a class="reset" href="javascript:billable_chart.filterAll();dc.redrawAll();" style = "display: none;">reset</a> 
+</p></div>
+<div id = "client_active"><p>Client Active - 
+<a class="reset" href="javascript:client_active_chart.filterAll();dc.redrawAll();" style = "display: none;">reset</a> 
+</p></div>
+</div>
 
 
 <script>
@@ -269,6 +348,11 @@ var json_d = JSON.parse(json_raw);
 var length = json_d['listcount'];
 var times = json_d['time'];
 $('#nresults').html("Number of Results: "+ length);
+if (json_d == false)
+{
+	$('#charts').hide();
+	$('#error').show();
+}
 console.log(json_d);
 var active_chart = dc.pieChart('#active');
 var billable_chart = dc.pieChart('#billable');
@@ -387,12 +471,13 @@ var time_d = interval_cf.dimension(function(d){return d.time;});
 var count_by_time = time_d.group();
 
 time_chart
-	.width(300)
+	.width(400)
 	.height(250)
 	.dimension(time_d)
 	.group(count_by_time)
-	.x(d3.scale.linear().domain([0, 40]))
-	.elasticY(true);
+    .x(d3.scale.linear().domain([0,50]))
+	.xAxisLabel("Hrs")
+	.elasticX(true);
 
 function remove_small_agents_groups(source_group) {
     return {
