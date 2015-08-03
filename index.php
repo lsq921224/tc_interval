@@ -1,10 +1,13 @@
 <?php
 	$datebegin = !is_null($_GET["datebegin"]) ? $_GET["datebegin"] : date("Y-m-d", strtotime(date('Y-m-01')));
-	$dateend = !is_null($_GET["dateend"]) ? $_GET["dateend"] : date("Y-m-d",strtotime( '-1 days' ));
+	//$dateend = !is_null($_GET["dateend"]) ? $_GET["dateend"] : date("Y-m-d",strtotime( '-1 days' ));
+	$dateend = !is_null($_GET["dateend"]) ? $_GET["dateend"] : date("Y-m-d");
 	$clientid = $_GET["clientid"];
 	$worktypeid = $_GET["worktypeid"];
 	$moduleid = $_GET["moduleid"];
 	$personid = $_GET["personid"];
+	$projectid = $_GET["projectid"];
+	$managerid = $_GET["managerid"];
 	
 	$username = '6cea4jyp5he';
 	$password = 'X';
@@ -13,6 +16,8 @@
 	$client_url = 'https://api.myintervals.com/client';
 	$module_url = 'https://api.myintervals.com/module';
 	$person_url = 'https://api.myintervals.com/person';
+	$project_url = 'https://api.myintervals.com/project';
+	$manager_url = 'https://api.myintervals.com/manager';
 
 	$data = http_build_query(array('datebegin' => $datebegin, 'dateend' => $dateend, 'limit' => 2147483647));
 	if (!is_null($worktypeid))
@@ -35,6 +40,16 @@
 		$m = http_build_query(array('personid' => $personid));
 		$data = $data . '&'. $m;
 	}
+	if (!is_null($projectid))
+	{
+		$m = http_build_query(array('projectid' => $projectid));
+		$data = $data . '&'. $m;
+	}
+	if (!is_null($managerid))
+	{
+		$m = http_build_query(array('manager' => $managerid));
+		$data = $data . '&'. $m;
+	}
 	$ch = curl_init();
 	curl_setopt($curl, CURLOPT_HEADER, array("Accept: application/json","Content-Type:       application/json"));
 	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
@@ -53,6 +68,12 @@
 	$clients = curl_exec($ch);
 	curl_setopt($ch, CURLOPT_URL, $module_url.'?limit=2147483647');
 	$modules = curl_exec($ch);
+	curl_setopt($ch, CURLOPT_URL, $person_url.'?limit=2147483647');
+	$persons = curl_exec($ch);
+	curl_setopt($ch, CURLOPT_URL, $project_url.'?limit=2147483647');
+	$projects = curl_exec($ch);
+	curl_setopt($ch, CURLOPT_URL, $manager_url.'?limit=2147483647');
+	$managers = curl_exec($ch);
 	curl_close($ch);
  ?>
  
@@ -83,6 +104,12 @@
  var clients_json_obj = JSON.parse(clients_json)['client'];
  var module_json = <?php echo json_encode($modules)?>;
  var module_json_obj = JSON.parse(module_json)['module'];
+ var person_json = <?php echo json_encode($persons)?>;
+ var person_json_obj = JSON.parse(person_json)['person'];
+ var project_json = <?php echo json_encode($projects)?>;
+ var project_json_obj = JSON.parse(project_json)['project'];
+ var manager_json = <?php echo json_encode($managers)?>;
+ var manager_json_obj = JSON.parse(manager_json)['manager'];
  //console.log(work_type_json_obj);
  
 var getUrlParameter = function getUrlParameter(sParam) {
@@ -114,16 +141,28 @@ $(document).ready(function(){
 	var wid = getUrlParameter('worktypeid');
 	var cid = getUrlParameter('clientid');
 	var mid = getUrlParameter('moduleid');
-	
+	var pid = getUrlParameter('personid');
+	var pjid = getUrlParameter('projectid');
+	var mgid = getUrlParameter('managerid');
+
 	var work_type_all = url.replace(/&?worktypeid=([^&]$|[^&]*)/i, "");
 	var client_all = url.replace(/&?clientid=([^&]$|[^&]*)/i, "");
 	var module_all = url.replace(/&?moduleid=([^&]$|[^&]*)/i, "");
-	
+	var person_all = url.replace(/&?personid=([^&]$|[^&]*)/i, "");
+	var project_all = url.replace(/&?projectid=([^&]$|[^&]*)/i, "");
+	var manager_all = url.replace(/&?managerid=([^&]$|[^&]*)/i, "");
+
 	$('#work_type_drop ul').append('<li><a href="'+ work_type_all +'">'+ "All" +'</a></li>');
 		 
 	$('#client_drop ul').append('<li><a href="'+ client_all +'">'+ "All" +'</a></li>');
 		
 	$('#module_drop ul').append('<li><a href="'+ module_all +'">'+ "All" +'</a></li>');
+	
+	$('#person_drop ul').append('<li><a href="'+ person_all +'">'+ "All" +'</a></li>');
+	
+	$('#project_drop ul').append('<li><a href="'+ project_all +'">'+ "All" +'</a></li>');
+	
+	$('#manager_drop ul').append('<li><a href="'+ manager_all +'">'+ "All" +'</a></li>');
 	
 	for( index in work_type_json_obj )
     {
@@ -165,10 +204,49 @@ $(document).ready(function(){
       $('#module_drop ul').append('<li><a href="' + url + 'moduleid='+ module_json_obj[index].id + '">'+ module_json_obj[index].name +'</a></li>');
     }
 	
+	for( index in person_json_obj )
+    {
+		if (pid)
+		{
+		var h = $.param.querystring(url, 'personid='+ person_json_obj[index].id);
+		 $('#person_drop ul').append('<li><a href="'+ h +'">'+ person_json_obj[index].firstname + ' ' + person_json_obj[index].lastname +'</a></li>');
+		 if (person_json_obj[index].id == pid)
+		  $('#ps').html("Person - " + person_json_obj[index].firstname + " " + person_json_obj[index].lastname);
+		}
+		else
+      $('#person_drop ul').append('<li><a href="' + url + 'personid='+ person_json_obj[index].id + '">'+ person_json_obj[index].firstname + " " + person_json_obj[index].lastname +'</a></li>');
+    }
+	
+	for( index in project_json_obj )
+    {
+		if (pjid)
+		{
+		var h = $.param.querystring(url, 'projectid='+ project_json_obj[index].id);
+		 $('#project_drop ul').append('<li><a href="'+ h +'">'+ project_json_obj[index].name +'</a></li>');
+		 if (project_json_obj[index].id == pjid)
+		  $('#pj').html("Project - " + project_json_obj[index].name);
+		}
+		else
+      $('#project_drop ul').append('<li><a href="' + url + 'projectid='+ project_json_obj[index].id + '">'+ project_json_obj[index].name +'</a></li>');
+    }
+	
+	for( index in manager_json_obj )
+    {
+		if (pid)
+		{
+		var h = $.param.querystring(url, 'managerid='+ manager_json_obj[index].id);
+		 $('#manager_drop ul').append('<li><a href="'+ h +'">'+ manager_json_obj[index].firstname + ' ' + manager_json_obj[index].lastname +'</a></li>');
+		 if (manager_json_obj[index].id == pid)
+		  $('#ps').html("Manager - " + manager_json_obj[index].firstname + " " + manager_json_obj[index].lastname);
+		}
+		else
+      $('#manager_drop ul').append('<li><a href="' + url + 'managerid='+ manager_json_obj[index].id + '">'+ manager_json_obj[index].firstname + " " + manager_json_obj[index].lastname +'</a></li>');
+    }
+	
 	$("#s_json").click(function() {
 		var json_string = JSON.stringify(person_d.top(Infinity));
 		var blob = new Blob([json_string], {type: "application/json"});
-		saveAs(blob, "interval_json_" + $('#ct').text() + "_" + $('#wt').text() + '_' + $('#md').text() + ".json");
+		saveAs(blob, "interval_json_" + $('#options').text() + ".json");
 
 	});
 	
@@ -188,7 +266,7 @@ $(document).ready(function(){
 		
 		var csv = $.csv.fromObjects(outArray);
         var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-		saveAs(blob, "interval_csv_" + $('#ct').text() + "_" + $('#wt').text() + '_' + $('#md').text() + ".csv");
+		saveAs(blob, "interval_csv_" + $('#ps').text() + "_" + $('#ct').text() + "_" + $('#wt').text() + '_' + $('#md').text() + ".csv");
 	});
 	
 	$("#export_drop")
@@ -208,6 +286,12 @@ $(document).ready(function(){
 <body>
 <div id="selections">
 
+<!-- btn-group --> 
+  				<div id="person_drop" class="btn-group"><button type="button" class="btn dropdown-toggle" data-toggle="dropdown">Person</button>
+                   <ul class="dropdown-menu">
+                  </ul>
+              </div><!-- /btn-group -->
+			  
  <!-- btn-group --> 
   				<div id="work_type_drop" class="btn-group"><button type="button" class="btn dropdown-toggle" data-toggle="dropdown">Work Type</button>
                    <ul class="dropdown-menu">
@@ -225,6 +309,17 @@ $(document).ready(function(){
 
                   </ul>
               </div><!-- /btn-group -->
+			  
+<!-- btn-group --> <div id="project_drop" class="btn-group"><button type="button" class="btn dropdown-toggle" data-toggle="dropdown">Project</button><ul class="dropdown-menu">
+
+                  </ul>
+              </div><!-- /btn-group -->
+			  
+<!-- btn-group --> <div id="manager_drop" class="btn-group"><button type="button" class="btn dropdown-toggle" data-toggle="dropdown">Manager</button><ul class="dropdown-menu">
+
+                  </ul>
+              </div><!-- /btn-group -->
+
 			  
 <!-- btn-group --> <div id="export_drop" class="btn-group"><button type="button" class="btn dropdown-toggle" data-toggle="dropdown">Export</button><ul class="dropdown-menu">
 	<li><a id = "s_json">JSON</a></li>
@@ -271,6 +366,7 @@ $(function() {
 
 </div>
 
+<div id = 'options'>
 <h3 id = "it">Intervals - <a href = "/interval">reset</a><?php 
 if (is_null($worktypeid))
 	$worktypeid = "All";
@@ -278,10 +374,20 @@ if (is_null($clientid))
 	$clientid = "All";
 if (is_null($moduleid))
 	$moduleid = "All";
+if (is_null($personid))
+	$personid = "All";
+if (is_null($projectid))
+	$projectid = "All";
+if (is_null($managerid))
+	$managerid = "All";
 echo "<br>From ". $datebegin. " to ".$dateend;?> </h3>
+<h3 class = "names" id = "ps">Person - <?php echo $personid;?> </h3>
 <h3 class = "names" id = "wt">Work Type - <?php echo $worktypeid;?> </h3>
 <h3 class = "names" id = "ct">Client - <?php echo $clientid; ?></h3>
 <h3 class = "names" id = "md">Module - <?php echo $moduleid; ?></h3>
+<h3 class = "names" id = "pj">Project - <?php echo $projectid; ?></h3>
+<h3 class = "names" id = "mg">Manager - <?php echo $managerid; ?></h3>
+</div>
 <h3 id = "nresults" style = "margin-bottom: 0px;"></h3>
 <h3 id = "sresults" style = "margin-top: 0px;"></h3>
 <div id = "error" hidden>Error Getting data from myinterval API, may be requesting too many data</div>
