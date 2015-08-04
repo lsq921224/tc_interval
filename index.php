@@ -22,27 +22,27 @@
 	$data = http_build_query(array('datebegin' => $datebegin, 'dateend' => $dateend, 'limit' => 2147483647));
 	if (!is_null($worktypeid))
 	{
-		$w = http_build_query(array('worktypeid' => $worktypeid));
+		$w = 'worktypeid=' . $worktypeid;
 		$data = $data . '&'. $w;
 	}
 	if (!is_null($clientid))
 	{
-		$c = http_build_query(array('clientid' => $clientid));
+		$c = 'clientid=' . $clientid;
 		$data = $data . '&'. $c;
 	}
 	if (!is_null($moduleid))
 	{
-		$m = http_build_query(array('moduleid' => $moduleid));
+		$m = 'moduleid=' . $moduleid;
 		$data = $data . '&'. $m;
 	}
 	if (!is_null($personid))
 	{
-		$m = http_build_query(array('personid' => $personid));
+		$m = 'personid=' . $personid;
 		$data = $data . '&'. $m;
 	}
 	if (!is_null($projectid))
 	{
-		$m = http_build_query(array('projectid' => $projectid));
+		$m = 'projectid=' . $projectid;
 		$data = $data . '&'. $m;
 	}
 	if (!is_null($managerid))
@@ -83,10 +83,12 @@
   <link rel="stylesheet" href="css/style.css"/>
   <link rel="stylesheet" href="css/dc.css"/>
   <link rel="stylesheet" href="css/bootstrap.css"/>
+  <link rel="stylesheet" href="css/bootstrap-multiselect.css"/>
   <link rel="stylesheet" href="css/daterangepicker.css"/>
   <script src="js/jquery-2.1.4.min.js"></script>
   <script src="js/jquery.ba-bbq.js"></script>
   <script src="js/bootstrap.min.js"></script>
+  <script src="js/bootstrap-multiselect.js"></script>
   <script src="js/moment.js"></script>
   <script src="js/daterangepicker.js"></script>
   <script src="js/d3.v3.js"></script>
@@ -112,6 +114,12 @@
  var manager_json_obj = JSON.parse(manager_json)['manager'];
  //console.log(work_type_json_obj);
  
+ var work_type_selected_all = false;
+ var client_selected_all = false;
+ var module_selected_all = false;
+ var person_selected_all = false;
+ var project_selected_all = false;
+
 var getUrlParameter = function getUrlParameter(sParam) {
     var sPageURL = decodeURIComponent(window.location.search.substring(1)),
         sURLVariables = sPageURL.split('&'),
@@ -145,90 +153,120 @@ $(document).ready(function(){
 	var pjid = getUrlParameter('projectid');
 	var mgid = getUrlParameter('managerid');
 
-	var work_type_all = url.replace(/&?worktypeid=([^&]$|[^&]*)/i, "");
-	var client_all = url.replace(/&?clientid=([^&]$|[^&]*)/i, "");
-	var module_all = url.replace(/&?moduleid=([^&]$|[^&]*)/i, "");
-	var person_all = url.replace(/&?personid=([^&]$|[^&]*)/i, "");
-	var project_all = url.replace(/&?projectid=([^&]$|[^&]*)/i, "");
-	var manager_all = url.replace(/&?managerid=([^&]$|[^&]*)/i, "");
+	var whtml = "";
+	var chtml = "";
+	var mhtml = "";
+	var phtml = "";
+	var pjhtml = "";
 
-	$('#work_type_drop ul').append('<li><a href="'+ work_type_all +'">'+ "All" +'</a></li>');
+
+	//$('#work_type_drop').append('<option><a href="'+ work_type_all +'">'+ "All" +'</a></option>');
 		 
-	$('#client_drop ul').append('<li><a href="'+ client_all +'">'+ "All" +'</a></li>');
+	//$('#client_drop ul').append('<li><a href="'+ client_all +'">'+ "All" +'</a></li>');
 		
-	$('#module_drop ul').append('<li><a href="'+ module_all +'">'+ "All" +'</a></li>');
+	//$('#module_drop ul').append('<li><a href="'+ module_all +'">'+ "All" +'</a></li>');
 	
-	$('#person_drop ul').append('<li><a href="'+ person_all +'">'+ "All" +'</a></li>');
+	//$('#person_drop ul').append('<li><a href="'+ person_all +'">'+ "All" +'</a></li>');
 	
-	$('#project_drop ul').append('<li><a href="'+ project_all +'">'+ "All" +'</a></li>');
+	//$('#project_drop ul').append('<li><a href="'+ project_all +'">'+ "All" +'</a></li>');
 	
-	$('#manager_drop ul').append('<li><a href="'+ manager_all +'">'+ "All" +'</a></li>');
+	//$('#manager_drop ul').append('<li><a href="'+ manager_all +'">'+ "All" +'</a></li>');
 	
 	for( index in work_type_json_obj )
     {
-	if (wid)
-	  {
-		var h = $.param.querystring(url, 'worktypeid='+ work_type_json_obj[index].id);
-		 $('#work_type_drop ul').append('<li><a href="'+ h +'">'+ work_type_json_obj[index].name +'</a></li>');
-		if (work_type_json_obj[index].id == wid)
-			$('#wt').html("Work Type - " + work_type_json_obj[index].name);
-	  }
-	  else
-		$('#work_type_drop ul').append('<li><a href="'+ url + 'worktypeid=' + work_type_json_obj[index].id +'">'+ work_type_json_obj[index].name +'</a></li>');
-	 
-    }
-	
-	for( index in clients_json_obj )
-    {
-		if (cid)
+	 if (wid)
+	 {
+		if (wid.indexOf(work_type_json_obj[index].id) > -1)
 		{
-		var h = $.param.querystring(url, 'clientid='+ clients_json_obj[index].id);
-		 $('#client_drop ul').append('<li><a href="'+ h +'">'+ clients_json_obj[index].name +'</a></li>');
-		 if (clients_json_obj[index].id == cid)
-			 $('#ct').html("Client - " + clients_json_obj[index].name);
+			$('#work_type_drop').append('<option selected = "selected" value="' + work_type_json_obj[index].id + '">' +work_type_json_obj[index].name+'</option>');
+			whtml += work_type_json_obj[index].name + ' | ';
 		}
 		else
-      $('#client_drop ul').append('<li><a href="' + url + 'clientid='+ clients_json_obj[index].id + '">'+ clients_json_obj[index].name +'</a></li>');
+			$('#work_type_drop').append('<option value="' + work_type_json_obj[index].id + '">' +work_type_json_obj[index].name+'</option>');
+	 }
+	 else 
+		$('#work_type_drop').append('<option value="' + work_type_json_obj[index].id + '">' +work_type_json_obj[index].name+'</option>');
     }
+	if (whtml == "")
+		whtml = "All";
+	$('#wt').html("Work Type - " + whtml);
+
+	for( index in clients_json_obj )
+    {
+	if (cid)
+	 {
+		if (cid.indexOf(clients_json_obj[index].id) > -1)
+		{
+			$('#client_drop').append('<option selected = "selected" value="' + clients_json_obj[index].id + '">' +clients_json_obj[index].name+'</option>');
+			chtml += clients_json_obj[index].name + ' | ';
+		}
+		else
+			$('#client_drop').append('<option value="' + clients_json_obj[index].id + '">' +clients_json_obj[index].name+'</option>');
+	 }
+	 else 
+		$('#client_drop').append('<option value="' + clients_json_obj[index].id + '">' +clients_json_obj[index].name+'</option>');
+    }
+	if (chtml == "")
+		chtml = "All";	
+	$('#ct').html("Client - " + chtml);
+
 	
 	for( index in module_json_obj )
     {
-		if (mid)
+	  if (mid)
+	 {
+		if (mid.indexOf(module_json_obj[index].id) > -1)
 		{
-		var h = $.param.querystring(url, 'moduleid='+ module_json_obj[index].id);
-		 $('#module_drop ul').append('<li><a href="'+ h +'">'+ module_json_obj[index].name +'</a></li>');
-		 if (module_json_obj[index].id == mid)
-		  $('#md').html("Module - " + module_json_obj[index].name);
+			$('#module_drop').append('<option selected = "selected" value="' + module_json_obj[index].id + '">' +module_json_obj[index].name+'</option>');
+			mhtml += module_json_obj[index].name + ' | ';
 		}
 		else
-      $('#module_drop ul').append('<li><a href="' + url + 'moduleid='+ module_json_obj[index].id + '">'+ module_json_obj[index].name +'</a></li>');
+			$('#module_drop').append('<option value="' + module_json_obj[index].id + '">' +module_json_obj[index].name+'</option>');
+	 }
+	 else 
+		$('#module_drop').append('<option value="' + module_json_obj[index].id + '">' +module_json_obj[index].name+'</option>');
     }
+	if (mhtml == "")
+		mhtml = "All";
+	$('#md').html("Module - " + mhtml);
 	
 	for( index in person_json_obj )
     {
-		if (pid)
+     if (pid)
+	 {
+		if (pid.indexOf(person_json_obj[index].id) > -1)
 		{
-		var h = $.param.querystring(url, 'personid='+ person_json_obj[index].id);
-		 $('#person_drop ul').append('<li><a href="'+ h +'">'+ person_json_obj[index].firstname + ' ' + person_json_obj[index].lastname +'</a></li>');
-		 if (person_json_obj[index].id == pid)
-		  $('#ps').html("Person - " + person_json_obj[index].firstname + " " + person_json_obj[index].lastname);
+			$('#person_drop').append('<option selected = "selected" value="' + person_json_obj[index].id + '">' +person_json_obj[index].firstname　+ " " + person_json_obj[index].lastname +'</option>');
+			phtml += person_json_obj[index].firstname +　" " + person_json_obj[index].lastname+ ' | ';
 		}
 		else
-      $('#person_drop ul').append('<li><a href="' + url + 'personid='+ person_json_obj[index].id + '">'+ person_json_obj[index].firstname + " " + person_json_obj[index].lastname +'</a></li>');
-    }
+			$('#person_drop').append('<option value="' + person_json_obj[index].id + '">' +person_json_obj[index].firstname+ " " + person_json_obj[index].lastname + '</option>');
+	 }
+	 else 
+		$('#person_drop').append('<option value="' + person_json_obj[index].id + '">' +person_json_obj[index].firstname + " " +person_json_obj[index].lastname + '</option>');
+   }
+   if (phtml == "")
+	   phtml = "All";
+   $('#ps').html("Person - " + phtml);
 	
 	for( index in project_json_obj )
     {
-		if (pjid)
+	if (pjid)
+	 {
+		if (pjid.indexOf(project_json_obj[index].id) > -1)
 		{
-		var h = $.param.querystring(url, 'projectid='+ project_json_obj[index].id);
-		 $('#project_drop ul').append('<li><a href="'+ h +'">'+ project_json_obj[index].name +'</a></li>');
-		 if (project_json_obj[index].id == pjid)
-		  $('#pj').html("Project - " + project_json_obj[index].name);
+			$('#project_drop').append('<option selected = "selected" value="' + project_json_obj[index].id + '">' +project_json_obj[index].name+'</option>');
+			pjhtml += project_json_obj[index].name + ' | ';
 		}
 		else
-      $('#project_drop ul').append('<li><a href="' + url + 'projectid='+ project_json_obj[index].id + '">'+ project_json_obj[index].name +'</a></li>');
+			$('#project_drop').append('<option value="' + project_json_obj[index].id + '">' +project_json_obj[index].name+'</option>');
+	 }
+	 else 
+		$('#project_drop').append('<option value="' + project_json_obj[index].id + '">' +project_json_obj[index].name+'</option>');
     }
+	if (pjhtml == "")
+	   pjhtml = "All";
+   $('#pj').html("Project - " + pjhtml);
 	
 	for( index in manager_json_obj )
     {
@@ -237,7 +275,7 @@ $(document).ready(function(){
 		var h = $.param.querystring(url, 'managerid='+ manager_json_obj[index].id);
 		 $('#manager_drop ul').append('<li><a href="'+ h +'">'+ manager_json_obj[index].firstname + ' ' + manager_json_obj[index].lastname +'</a></li>');
 		 if (manager_json_obj[index].id == pid)
-		  $('#ps').html("Manager - " + manager_json_obj[index].firstname + " " + manager_json_obj[index].lastname);
+		  $('#mg').html("Manager - " + manager_json_obj[index].firstname + " " + manager_json_obj[index].lastname);
 		}
 		else
       $('#manager_drop ul').append('<li><a href="' + url + 'managerid='+ manager_json_obj[index].id + '">'+ manager_json_obj[index].firstname + " " + manager_json_obj[index].lastname +'</a></li>');
@@ -266,7 +304,62 @@ $(document).ready(function(){
 		
 		var csv = $.csv.fromObjects(outArray);
         var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-		saveAs(blob, "interval_csv_" + $('#ps').text() + "_" + $('#ct').text() + "_" + $('#wt').text() + '_' + $('#md').text() + ".csv");
+		saveAs(blob, "interval_csv_" + $('#options').text() + ".csv");
+	});
+	
+	$('#work_type_drop').multiselect({
+		includeSelectAllOption: true,
+		enableFiltering: true,
+		buttonText: function(options, select) {
+                    return 'Work Type';
+            },
+		onSelectAll: function() {
+           work_type_selected_all = true;
+        }
+	});
+	
+	$('#client_drop').multiselect({
+		includeSelectAllOption: true,
+		enableFiltering: true,
+		buttonText: function(options, select) {
+                    return 'Client';
+            },
+		onSelectAll: function() {
+           client_selected_all = true;
+        }
+	});
+	
+	$('#module_drop').multiselect({
+		includeSelectAllOption: true,
+		enableFiltering: true,
+		buttonText: function(options, select) {
+                    return 'Module';
+            },
+		onSelectAll: function() {
+           module_selected_all = true;
+        }
+	});
+	
+	$('#person_drop').multiselect({
+		includeSelectAllOption: true,
+		enableFiltering: true,
+		buttonText: function(options, select) {
+                    return 'Person';
+            },
+		onSelectAll: function() {
+           person_selected_all = true;
+        }
+	});
+	
+	$('#project_drop').multiselect({
+		includeSelectAllOption: true,
+		enableFiltering: true,
+		buttonText: function(options, select) {
+                    return 'Project';
+            },
+		onSelectAll: function() {
+           project_selected_all = true;
+        }
 	});
 	
 	$("#export_drop")
@@ -279,41 +372,146 @@ $(document).ready(function(){
 		$('#message').hide();
 	}
 	);
+	
+	$( "#callapi" ).submit(function( event ) {
+		var parameter = "?";
+		var url = window.location.href;
+		
+		var work_type_all = url.replace(/&?worktypeid=([^&]$|[^&]*)/i, "");
+		var client_all = url.replace(/&?clientid=([^&]$|[^&]*)/i, "");
+		var module_all = url.replace(/&?moduleid=([^&]$|[^&]*)/i, "");
+		var person_all = url.replace(/&?personid=([^&]$|[^&]*)/i, "");
+		var project_all = url.replace(/&?projectid=([^&]$|[^&]*)/i, "");
+		var manager_all = url.replace(/&?managerid=([^&]$|[^&]*)/i, "");
+	
+		var work_types = $('#work_type_drop option:selected').map(function(a, item){return item.value;});
+		var clients = $('#client_drop option:selected').map(function(a, item){return item.value;});
+		var modules = $('#module_drop option:selected').map(function(a, item){return item.value;});
+		var persons = $('#person_drop option:selected').map(function(a, item){return item.value;});
+		var projects = $('#project_drop option:selected').map(function(a, item){return item.value;});
+
+		if (work_types.length > 0)
+		{
+			if (!work_type_selected_all)
+			{
+				parameter = parameter + "&worktypeid=";
+				for (var i = 0; i < work_types.length; i++)
+				{
+					if (i != work_types.length - 1)
+						parameter += work_types[i] + ',';
+					else
+						parameter += work_types[i];
+				}
+			}
+			else
+			{
+				url = work_type_all;
+			}
+		}
+		
+		if (clients.length > 0)
+		{
+			if (!client_selected_all)
+			{
+				parameter = parameter + "&clientid=";
+				for (var i = 0; i < clients.length; i++)
+				{
+					if (i != clients.length - 1)
+						parameter += clients[i] + ',';
+					else
+				parameter += clients[i];
+			}
+			}
+			else
+			{
+				url = client_all;
+			}
+		}
+		
+		if (modules.length > 0)
+		{
+			if (!module_selected_all)
+			{
+				parameter = parameter + "&moduleid=";
+				for (var i = 0; i < modules.length; i++)
+				{
+					if (i != modules.length - 1)
+						parameter += modules[i] + ',';
+					else
+				parameter += modules[i];
+			}
+			}
+			else
+			{
+				url = module_all;
+			}
+		}
+		
+		if (persons.length > 0)
+		{
+			if (!person_selected_all)
+			{
+				parameter = parameter + "&personid=";
+				for (var i = 0; i < persons.length; i++)
+				{
+					if (i != persons.length - 1)
+						parameter += persons[i] + ',';
+					else
+				parameter += persons[i];
+			}
+			}
+			else
+			{
+				url = person_all;
+			}
+		}
+		
+		if (projects.length > 0)
+		{
+			if (!project_selected_all)
+			{
+				parameter = parameter + "&projectid=";
+				for (var i = 0; i < projects.length; i++)
+				{
+					if (i != projects.length - 1)
+						parameter += projects[i] + ',';
+					else
+				parameter += projects[i];
+			}
+			}
+			else
+			{
+				url = project_all;
+			}
+		}
+		
+		//alert(parameter);
+		window.location.href = $.param.querystring(url,parameter);
+		event.preventDefault();
+	});
 });
 </script>
 </head>
 
 <body>
+<form id = "callapi" class="form-horizontal" method="GET" action="">
 <div id="selections">
 
 <!-- btn-group --> 
-  				<div id="person_drop" class="btn-group"><button type="button" class="btn dropdown-toggle" data-toggle="dropdown">Person</button>
-                   <ul class="dropdown-menu">
-                  </ul>
-              </div><!-- /btn-group -->
+  				<select id="person_drop" class="btn-group" multiple ="multiple" >Person
+              </select><!-- /btn-group -->
 			  
  <!-- btn-group --> 
-  				<div id="work_type_drop" class="btn-group"><button type="button" class="btn dropdown-toggle" data-toggle="dropdown">Work Type</button>
-                   <ul class="dropdown-menu">
-                  </ul>
-              </div><!-- /btn-group -->
+  				<select id="work_type_drop" class="btn-group" multiple="multiple">Work Type
+              </select><!-- /btn-group -->
 
 
- <!-- btn-group --> <div id="client_drop" class="btn-group"><button type="button" class="btn dropdown-toggle" data-toggle="dropdown">Client</button>
-  				<ul class="dropdown-menu">
+ <!-- btn-group --> <select id="client_drop" class="btn-group" multiple="multiple">Client</select>
+ 
 
-                  </ul>
-              </div><!-- /btn-group -->
-
- <!-- btn-group --> <div id="module_drop" class="btn-group"><button type="button" class="btn dropdown-toggle" data-toggle="dropdown">Module</button><ul class="dropdown-menu">
-
-                  </ul>
-              </div><!-- /btn-group -->
+ <!-- btn-group --> <select id="module_drop" class="btn-group" multiple="multiple">Module</select><!-- /btn-group -->
 			  
-<!-- btn-group --> <div id="project_drop" class="btn-group"><button type="button" class="btn dropdown-toggle" data-toggle="dropdown">Project</button><ul class="dropdown-menu">
-
-                  </ul>
-              </div><!-- /btn-group -->
+<!-- btn-group --> <select id="project_drop" class="btn-group" multiple="multiple">Project</select><!-- /btn-group -->
 			  
 <!-- btn-group --> <div id="manager_drop" class="btn-group"><button type="button" class="btn dropdown-toggle" data-toggle="dropdown">Manager</button><ul class="dropdown-menu">
 
@@ -321,18 +519,23 @@ $(document).ready(function(){
               </div><!-- /btn-group -->
 
 			  
-<!-- btn-group --> <div id="export_drop" class="btn-group"><button type="button" class="btn dropdown-toggle" data-toggle="dropdown">Export</button><ul class="dropdown-menu">
+<!-- btn-group --> 
+
+			  <div id="reportrange" class="pull-left" style="cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; margin-right:4px; height: 34px; border-radius: 4px;" >
+    <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>&nbsp;
+    <span></span> <b class="caret"></b>
+</div>
+    <button type="submit" class="btn btn-default">Submit</button>
+	
+<div id="export_drop" class="btn-group"><button type="button" class="btn dropdown-toggle" data-toggle="dropdown">Export</button><ul class="dropdown-menu">
 	<li><a id = "s_json">JSON</a></li>
 	<li><a id = "s_csv">CSV</a></li>
                   </ul>
 				  <span class ="alert alert-info" id='message' style ="margin-left:4px;" hidden></span>
               </div><!-- /btn-group -->
+</div>
+</form>
 
-			  <div id="reportrange" class="pull-left" style="background: #ddd; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; margin-right:4px; height: 34px; border-radius: 4px;" >
-    <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>&nbsp;
-    <span></span> <b class="caret"></b>
-</div>
-</div>
 <script type="text/javascript">
 $(function() {
 
@@ -390,7 +593,8 @@ echo "<br>From ". $datebegin. " to ".$dateend;?> </h3>
 </div>
 <h3 id = "nresults" style = "margin-bottom: 0px;"></h3>
 <h3 id = "sresults" style = "margin-top: 0px;"></h3>
-<div id = "error" hidden>Error Getting data from myinterval API, may be requesting too many data</div>
+<div id = "error" hidden><p>Error Getting data from myinterval API, may be requesting too many data.</p></div>
+<div id = "norsults" hidden><p>No data to show!</p></div>
 <div id = "charts">
 <div id = "person"><p>Person - 
               <a class="reset" href="javascript:person_chart.filterAll();dc.redrawAll();" style = "display: none;">reset</a> </p>
@@ -468,6 +672,11 @@ if (json_d == false)
 	$('#charts').hide();
 	$('#error').show();
 }
+else if (length == 0)
+{
+	$('#charts').hide();
+	$('#norsults').show();
+}
 console.log(json_d);
 var active_chart = dc.pieChart('#active');
 var billable_chart = dc.pieChart('#billable');
@@ -529,7 +738,7 @@ client_active_chart
 	.group(count_by_client_active)
 	.legend(dc.legend());
 	
-var client_d = interval_cf.dimension(function(d){return d.client;});
+var client_d = interval_cf.dimension(function(d){return d.client.replace(/&amp;/g, '&');});
 var count_by_client = client_d.group();
 var client_height = count_by_client.all().length * 20 + 200;
 
@@ -551,7 +760,7 @@ person_chart
 	.group(count_by_person)
 	.elasticX(true);
 
-var module_d = interval_cf.dimension(function(d){return d.module;});
+var module_d = interval_cf.dimension(function(d){return d.module.replace(/&amp;/g, '&');});
 var count_by_module = module_d.group();
 var module_height = count_by_module.all().length * 20 + 200;
 
@@ -562,7 +771,7 @@ module_chart
 	.group(count_by_module)
 	.elasticX(true);
 
-var project_d = interval_cf.dimension(function(d){return d.project;});
+var project_d = interval_cf.dimension(function(d){return d.project.replace(/&amp;/g, '&');});
 var count_by_project = project_d.group();
 var project_height = count_by_project.all().length * 20 + 200;
 
@@ -573,7 +782,7 @@ project_chart
 	.group(count_by_project)
 	.elasticX(true);
 	
-var work_type_d = interval_cf.dimension(function(d){return d.worktype;});
+var work_type_d = interval_cf.dimension(function(d){return d.worktype.replace(/&amp;/g, '&');});
 var count_by_work_type = work_type_d.group();
 var work_type_height = count_by_work_type.all().length * 20 + 200;
 
