@@ -51,7 +51,6 @@
 		$data = $data . '&'. $m;
 	}
 	$ch = curl_init();
-	curl_setopt($curl, CURLOPT_HEADER, array("Accept: application/json","Content-Type:       application/json"));
 	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
 	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
 	curl_setopt($ch, CURLOPT_URL, $URL.'?'.$data);
